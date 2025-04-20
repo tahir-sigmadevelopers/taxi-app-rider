@@ -155,7 +155,7 @@ const EditProfileScreen = ({ navigation }) => {
         Alert.alert(
           'Success',
           'Profile updated successfully',
-          [{ text: 'OK' }]
+          [{ text: 'OK', onPress: () => navigation.navigate('Profile') }]
         );
       } else {
         setErrorMessage(response.message || 'Failed to update profile');

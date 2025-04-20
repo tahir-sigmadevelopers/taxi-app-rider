@@ -12,11 +12,22 @@ import { Ionicons } from '@expo/vector-icons';
 import CustomSafeArea from '../components/CustomSafeArea';
 import { auth } from '../config/firebase';
 import userService from '../services/userService';
+import { useFocusEffect } from '@react-navigation/native';
 
 const ProfileScreen = ({ navigation }) => {
   const [userData, setUserData] = useState(null);
   const [loading, setLoading] = useState(true);
 
+  // Refresh profile data whenever the screen comes into focus
+  useFocusEffect(
+    React.useCallback(() => {
+      console.log('Profile screen focused, refreshing data');
+      fetchUserProfile();
+      return () => {};
+    }, [])
+  );
+
+  // Initial load
   useEffect(() => {
     fetchUserProfile();
   }, []);
@@ -27,9 +38,11 @@ const ProfileScreen = ({ navigation }) => {
       const currentUser = auth.currentUser;
       
       if (currentUser) {
+        console.log('Fetching user profile for:', currentUser.uid);
         const response = await userService.getUserByFirebaseUid(currentUser.uid);
         
         if (response.success) {
+          console.log('User data fetched successfully:', response.data);
           setUserData(response.data);
         }
       }
