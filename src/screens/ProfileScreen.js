@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   View,
   Text,
@@ -6,11 +6,51 @@ import {
   TouchableOpacity,
   ScrollView,
   Image,
+  ActivityIndicator,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import CustomSafeArea from '../components/CustomSafeArea';
+import { auth } from '../config/firebase';
+import userService from '../services/userService';
 
 const ProfileScreen = ({ navigation }) => {
+  const [userData, setUserData] = useState(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    fetchUserProfile();
+  }, []);
+
+  const fetchUserProfile = async () => {
+    try {
+      setLoading(true);
+      const currentUser = auth.currentUser;
+      
+      if (currentUser) {
+        const response = await userService.getUserByFirebaseUid(currentUser.uid);
+        
+        if (response.success) {
+          setUserData(response.data);
+        }
+      }
+    } catch (error) {
+      console.error('Error fetching profile:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Get initials from name
+  const getInitials = (name) => {
+    if (!name) return '?';
+    return name
+      .split(' ')
+      .map(part => part[0])
+      .join('')
+      .toUpperCase()
+      .substring(0, 2);
+  };
+
   const menuItems = [
     {
       id: '1',
@@ -98,16 +138,35 @@ const ProfileScreen = ({ navigation }) => {
 
       <ScrollView style={styles.content}>
         <View style={styles.profileSection}>
-          <View style={styles.profileImageContainer}>
-            <View style={styles.profileImage}>
-              <Text style={styles.profileInitials}>JW</Text>
-            </View>
-            <TouchableOpacity style={styles.editButton}>
-              <Ionicons name="pencil" size={20} color="#000" />
-            </TouchableOpacity>
-          </View>
-          <Text style={styles.userName}>Jenny Wilson</Text>
-          <Text style={styles.loyaltyPoints}>200 Loyalty Points</Text>
+          {loading ? (
+            <ActivityIndicator size="large" color="#FFB800" />
+          ) : (
+            <>
+              <View style={styles.profileImageContainer}>
+                {userData && userData.profileImage ? (
+                  <Image 
+                    source={{ uri: userData.profileImage }} 
+                    style={styles.profileImage} 
+                  />
+                ) : (
+                  <View style={styles.profileImage}>
+                    <Text style={styles.profileInitials}>
+                      {userData ? getInitials(userData.name) : 'U'}
+                    </Text>
+                  </View>
+                )}
+                <TouchableOpacity 
+                  style={styles.editButton}
+                  onPress={() => navigation.navigate('EditProfile')}
+                >
+                  <Ionicons name="pencil" size={20} color="#000" />
+                </TouchableOpacity>
+              </View>
+              <Text style={styles.userName}>
+                {userData ? userData.name : 'User'}
+              </Text>
+            </>
+          )}
         </View>
 
         <View style={styles.menuContainer}>
@@ -212,10 +271,6 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
     color: '#000',
     marginBottom: 8,
-  },
-  loyaltyPoints: {
-    fontSize: 16,
-    color: '#666',
   },
   menuContainer: {
     paddingHorizontal: 16,
