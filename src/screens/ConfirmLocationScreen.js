@@ -15,12 +15,13 @@ import CustomSafeArea from '../components/CustomSafeArea';
 const ConfirmLocationScreen = ({ navigation, route }) => {
   const [estimatedTime, setEstimatedTime] = useState('15 min');
   const [estimatedDistance, setEstimatedDistance] = useState('5.2 km');
-  const [estimatedFare, setEstimatedFare] = useState('$12-15');
+  const [estimatedFare, setEstimatedFare] = useState(15);
+  const [fareRange, setFareRange] = useState('$12-15');
   const [loading, setLoading] = useState(false);
   const [rideOptions, setRideOptions] = useState([
-    { id: 1, name: 'Economy', price: '$12', time: '15 min', iconName: 'car-sport-outline', selected: true },
-    { id: 2, name: 'Comfort', price: '$18', time: '15 min', iconName: 'car-outline', selected: false },
-    { id: 3, name: 'Premium', price: '$25', time: '15 min', iconName: 'car', selected: false },
+    { id: 1, name: 'Economy', price: '$12', time: '15 min', iconName: 'car-sport-outline', selected: true, baseFare: 12 },
+    { id: 2, name: 'Comfort', price: '$18', time: '15 min', iconName: 'car-outline', selected: false, baseFare: 18 },
+    { id: 3, name: 'Premium', price: '$25', time: '15 min', iconName: 'car', selected: false, baseFare: 25 },
   ]);
   
   // Get pickup and destination from route params
@@ -46,9 +47,15 @@ const ConfirmLocationScreen = ({ navigation, route }) => {
     setRideOptions(updatedOptions);
     
     // Update estimated fare based on selection
-    if (id === 1) setEstimatedFare('$12-15');
-    else if (id === 2) setEstimatedFare('$18-22');
-    else if (id === 3) setEstimatedFare('$25-30');
+    const selectedOption = rideOptions.find(option => option.id === id);
+    if (selectedOption) {
+      // Update both the numerical fare and the display string
+      setEstimatedFare(selectedOption.baseFare);
+      
+      if (id === 1) setFareRange('$12-15');
+      else if (id === 2) setFareRange('$18-22');
+      else if (id === 3) setFareRange('$25-30');
+    }
   };
   
   // Handle confirm booking
@@ -64,6 +71,7 @@ const ConfirmLocationScreen = ({ navigation, route }) => {
         pickup,
         destination,
         fare: estimatedFare,
+        fareRange: fareRange,
         driver: {
           name: 'John Smith',
           rating: 4.8,
@@ -189,7 +197,7 @@ const ConfirmLocationScreen = ({ navigation, route }) => {
           </View>
           <View style={styles.rideStat}>
             <Ionicons name="cash-outline" size={20} color="#666" />
-            <Text style={styles.rideStatText}>{estimatedFare}</Text>
+            <Text style={styles.rideStatText}>{fareRange}</Text>
           </View>
         </View>
         

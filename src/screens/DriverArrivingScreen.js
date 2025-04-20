@@ -1,161 +1,174 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   View,
   Text,
   StyleSheet,
   TouchableOpacity,
-  SafeAreaView,
   Image,
-  Dimensions,
+  Platform,
+  Linking,
 } from 'react-native';
-import { Ionicons } from '@expo/vector-icons';
 import MapView, { Marker, Polyline } from 'react-native-maps';
+import { Ionicons } from '@expo/vector-icons';
+import CustomSafeArea from '../components/CustomSafeArea';
 
 const DriverArrivingScreen = ({ navigation, route }) => {
-  const { driver, fare } = route.params || {
-    driver: {
-      name: 'Jenny Wilson',
-      vehicle: 'Sedan',
-      carNumber: 'GR 678-UVWX',
-      seats: 4,
-      rate: 1.25,
-      image: require('../../assets/driver-profile.png'),
+  const [remainingTime, setRemainingTime] = useState(3);
+  
+  // Get parameters from route
+  const pickup = route.params?.pickup;
+  const destination = route.params?.destination;
+  const driver = route.params?.driver;
+  const fare = route.params?.fare; // Numeric fare value
+  const fareDisplay = route.params?.fareRange || `$${fare?.toFixed(2)}`; // Use fareRange if available, otherwise format the numeric fare
+  
+  useEffect(() => {
+    // Countdown timer simulation
+    const timer = setInterval(() => {
+      setRemainingTime(prevTime => {
+        if (prevTime <= 1) {
+          clearInterval(timer);
+          return 0;
+        }
+        return prevTime - 1;
+      });
+    }, 60000); // Update every minute
+    
+    return () => clearInterval(timer);
+  }, []);
+  
+  // Calculate route between driver and pickup
+  const routeCoordinates = pickup?.coordinates ? [
+    {
+      latitude: pickup.coordinates.latitude - 0.008,
+      longitude: pickup.coordinates.longitude - 0.005,
     },
-    fare: 10.00,
+    pickup.coordinates
+  ] : [];
+  
+  const handleCallDriver = () => {
+    Linking.openURL('tel:+1234567890');
   };
-
-  const handleArriveAtDestination = () => {
-    // Navigate to the ArrivedAtDestinationScreen with the necessary data
-    navigation.navigate('ArrivedAtDestinationScreen', {
-      destination: '6391 Elgin St. Celina, Delaware',
-      amount: fare,
-    });
+  
+  const handleCancelRide = () => {
+    navigation.navigate('Home');
   };
-
+  
+  if (!pickup?.coordinates) {
+    return (
+      <CustomSafeArea forceInset={true}>
+        <View style={styles.errorContainer}>
+          <Text style={styles.errorText}>Ride information is missing</Text>
+          <TouchableOpacity 
+            style={styles.backButton}
+            onPress={() => navigation.goBack()}
+          >
+            <Text style={styles.backButtonText}>Go Back</Text>
+          </TouchableOpacity>
+        </View>
+      </CustomSafeArea>
+    );
+  }
+  
   return (
-    <SafeAreaView style={styles.container}>
-      <View style={styles.header}>
-        <TouchableOpacity
-          style={styles.backButton}
-          onPress={() => navigation.goBack()}
-        >
-          <View style={styles.backButtonCircle}>
-            <Ionicons name="chevron-back" size={24} color="#000" />
-          </View>
-        </TouchableOpacity>
-        <Text style={styles.headerTitle}>Driver Arriving</Text>
-      </View>
-
-      <View style={styles.mapContainer}>
+    <CustomSafeArea forceInset={true}>
+      <View style={styles.container}>
+        {/* Map View */}
         <MapView
           style={styles.map}
           initialRegion={{
-            latitude: 37.78825,
-            longitude: -122.4324,
-            latitudeDelta: 0.0922,
-            longitudeDelta: 0.0421,
+            latitude: pickup.coordinates.latitude,
+            longitude: pickup.coordinates.longitude,
+            latitudeDelta: 0.0222,
+            longitudeDelta: 0.0121,
           }}
+          showsUserLocation={true}
         >
+          {/* Pickup Marker */}
+          <Marker
+            coordinate={pickup.coordinates}
+            title="Pickup Location"
+          >
+            <View style={styles.pickupMarker}>
+              <Ionicons name="location" size={24} color="#FFB800" />
+            </View>
+          </Marker>
+          
           {/* Driver Marker */}
-          <Marker
-            coordinate={{
-              latitude: 37.78825,
-              longitude: -122.4324,
-            }}
-          >
-            <View style={styles.carMarker}>
-              <Ionicons name="car" size={20} color="#000" />
-            </View>
-          </Marker>
-
-          {/* User Marker */}
-          <Marker
-            coordinate={{
-              latitude: 37.78925,
-              longitude: -122.4324,
-            }}
-          >
-            <Image
-              source={driver?.image}
-              style={styles.userMarker}
+          {routeCoordinates.length > 0 && (
+            <Marker
+              coordinate={routeCoordinates[0]}
+              title="Driver Location"
+            >
+              <View style={styles.driverMarker}>
+                <Ionicons name="car" size={24} color="#555" />
+              </View>
+            </Marker>
+          )}
+          
+          {/* Route line */}
+          {routeCoordinates.length > 1 && (
+            <Polyline
+              coordinates={routeCoordinates}
+              strokeWidth={3}
+              strokeColor="#FFB800"
             />
-          </Marker>
-
-          {/* Route Line */}
-          <Polyline
-            coordinates={[
-              { latitude: 37.78825, longitude: -122.4324 },
-              { latitude: 37.78925, longitude: -122.4324 },
-            ]}
-            strokeColor="#FFB800"
-            strokeWidth={3}
-          />
+          )}
         </MapView>
-
-        <View style={styles.fareInfo}>
-          <Ionicons name="information-circle" size={20} color="#FFB800" />
-          <Text style={styles.fareText}>
-            ${fare?.toFixed(2)} are your estimated fares for your ride
-          </Text>
-        </View>
-      </View>
-
-      <View style={styles.bottomSheet}>
-        <View style={styles.driverInfo}>
-          <Text style={styles.arrivalStatus}>Driver is Arriving...</Text>
-          <Text style={styles.timeAway}>5 min Away</Text>
-        </View>
-
-        <View style={styles.driverDetails}>
-          <View style={styles.driverProfile}>
-            <Image source={driver.image} style={styles.driverImage} />
-            <View style={styles.driverTextInfo}>
-              <Text style={styles.driverName}>{driver.name}</Text>
-              <Text style={styles.vehicleType}>{driver.vehicle}</Text>
+        
+        {/* Trip Info Card */}
+        <View style={styles.tripInfoCard}>
+          <View style={styles.driverInfo}>
+            <View style={styles.driverImageContainer}>
+              <Ionicons name="person-circle" size={60} color="#ccc" />
+            </View>
+            <View style={styles.driverDetails}>
+              <Text style={styles.driverName}>{driver?.name || 'Driver Name'}</Text>
+              <View style={styles.ratingContainer}>
+                <Ionicons name="star" size={16} color="#FFB800" />
+                <Text style={styles.ratingText}>{driver?.rating || '4.8'}</Text>
+              </View>
+              <Text style={styles.carInfo}>{driver?.car || 'Toyota Camry'} • {driver?.plate || 'ABC 123'}</Text>
+            </View>
+            <TouchableOpacity style={styles.callButton} onPress={handleCallDriver}>
+              <Ionicons name="call" size={24} color="#fff" />
+            </TouchableOpacity>
+          </View>
+          
+          <View style={styles.divider} />
+          
+          <View style={styles.tripDetails}>
+            <View style={styles.arrivalInfo}>
+              <Text style={styles.arrivalTitle}>Driver is arriving in</Text>
+              <Text style={styles.arrivalTime}>{remainingTime} min</Text>
+            </View>
+            
+            <View style={styles.fareInfo}>
+              <Text style={styles.fareTitle}>Estimated fare</Text>
+              <Text style={styles.fareAmount}>{fareDisplay}</Text>
             </View>
           </View>
-          <View style={styles.contactButtons}>
-            <TouchableOpacity style={styles.contactButton}>
-              <Ionicons name="chatbubble-ellipses" size={24} color="#FFB800" />
-            </TouchableOpacity>
-            <TouchableOpacity style={styles.contactButton}>
-              <Ionicons name="call" size={24} color="#FFB800" />
-            </TouchableOpacity>
+          
+          <View style={styles.locationInfo}>
+            <View style={styles.locationRow}>
+              <View style={[styles.locationDot, styles.pickupDot]} />
+              <Text style={styles.locationText} numberOfLines={1}>{pickup.name || pickup.address || 'Pickup location'}</Text>
+            </View>
+            
+            <View style={styles.locationConnector} />
+            
+            <View style={styles.locationRow}>
+              <View style={[styles.locationDot, styles.destinationDot]} />
+              <Text style={styles.locationText} numberOfLines={1}>{destination?.name || destination?.address || 'Destination'}</Text>
+            </View>
           </View>
-        </View>
-
-        <View style={styles.rideInfo}>
-          <View style={styles.infoItem}>
-            <Text style={styles.infoLabel}>Rate per</Text>
-            <Text style={styles.infoValue}>${driver.rate}</Text>
-          </View>
-          <View style={styles.infoItem}>
-            <Text style={styles.infoLabel}>Car Number</Text>
-            <Text style={styles.infoValue}>{driver.carNumber}</Text>
-          </View>
-          <View style={styles.infoItem}>
-            <Text style={styles.infoLabel}>No. of Seats</Text>
-            <Text style={styles.infoValue}>{driver.seats} Seats</Text>
-          </View>
-        </View>
-
-        <View style={styles.buttonContainer}>
-          <TouchableOpacity 
-            style={styles.cancelButton}
-            onPress={() => navigation.goBack()}
-          >
+          
+          <TouchableOpacity style={styles.cancelButton} onPress={handleCancelRide}>
             <Text style={styles.cancelButtonText}>Cancel Ride</Text>
           </TouchableOpacity>
-          
-          <TouchableOpacity 
-            style={styles.arriveButton}
-            onPress={handleArriveAtDestination}
-          >
-            <Text style={styles.arriveButtonText}>Simulate Arrival</Text>
-          </TouchableOpacity>
         </View>
       </View>
-    </SafeAreaView>
+    </CustomSafeArea>
   );
 };
 
@@ -164,82 +177,31 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: '#fff',
   },
-  header: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    padding: 16,
-  },
-  backButton: {
-    marginRight: 16,
-  },
-  backButtonCircle: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    backgroundColor: '#fff',
-    justifyContent: 'center',
-    alignItems: 'center',
-    shadowColor: '#000',
-    shadowOffset: {
-      width: 0,
-      height: 2,
-    },
-    shadowOpacity: 0.1,
-    shadowRadius: 3.84,
-    elevation: 2,
-  },
-  headerTitle: {
-    fontSize: 20,
-    fontWeight: 'bold',
-    color: '#000',
-  },
-  mapContainer: {
+  map: {
     flex: 1,
   },
-  map: {
-    width: Dimensions.get('window').width,
-    height: '100%',
-  },
-  carMarker: {
-    backgroundColor: '#FFB800',
+  pickupMarker: {
+    backgroundColor: '#fff',
     padding: 8,
     borderRadius: 20,
-  },
-  userMarker: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    borderWidth: 3,
+    borderWidth: 1,
     borderColor: '#FFB800',
   },
-  fareInfo: {
+  driverMarker: {
+    backgroundColor: '#fff',
+    padding: 8,
+    borderRadius: 20,
+    borderWidth: 1,
+    borderColor: '#555',
+  },
+  tripInfoCard: {
     position: 'absolute',
-    top: 20,
-    left: 20,
-    right: 20,
+    bottom: 0,
+    left: 0,
+    right: 0,
     backgroundColor: '#fff',
-    borderRadius: 12,
-    padding: 16,
-    flexDirection: 'row',
-    alignItems: 'center',
-    shadowColor: '#000',
-    shadowOffset: {
-      width: 0,
-      height: 2,
-    },
-    shadowOpacity: 0.1,
-    shadowRadius: 3.84,
-    elevation: 2,
-  },
-  fareText: {
-    marginLeft: 8,
-    fontSize: 14,
-    color: '#000',
-  },
-  bottomSheet: {
-    backgroundColor: '#fff',
-    borderTopLeftRadius: 30,
-    borderTopRightRadius: 30,
+    borderTopLeftRadius: 20,
+    borderTopRightRadius: 20,
     padding: 20,
     shadowColor: '#000',
     shadowOffset: {
@@ -247,112 +209,144 @@ const styles = StyleSheet.create({
       height: -2,
     },
     shadowOpacity: 0.1,
-    shadowRadius: 3.84,
+    shadowRadius: 4,
     elevation: 5,
   },
   driverInfo: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: 20,
+    marginBottom: 15,
   },
-  arrivalStatus: {
-    fontSize: 20,
-    fontWeight: 'bold',
-    color: '#000',
-  },
-  timeAway: {
-    fontSize: 16,
-    color: '#666',
+  driverImageContainer: {
+    marginRight: 15,
   },
   driverDetails: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 20,
-  },
-  driverProfile: {
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
-  driverImage: {
-    width: 50,
-    height: 50,
-    borderRadius: 25,
-    marginRight: 12,
-  },
-  driverTextInfo: {
-    justifyContent: 'center',
+    flex: 1,
   },
   driverName: {
     fontSize: 18,
     fontWeight: 'bold',
-    color: '#000',
-    marginBottom: 4,
+    color: '#333',
   },
-  vehicleType: {
-    fontSize: 14,
-    color: '#666',
-  },
-  contactButtons: {
+  ratingContainer: {
     flexDirection: 'row',
+    alignItems: 'center',
+    marginVertical: 4,
   },
-  contactButton: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    backgroundColor: '#FFF9E6',
+  ratingText: {
+    marginLeft: 4,
+    fontSize: 14,
+    color: '#555',
+  },
+  carInfo: {
+    fontSize: 14,
+    color: '#777',
+  },
+  callButton: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    backgroundColor: '#FFB800',
     justifyContent: 'center',
     alignItems: 'center',
-    marginLeft: 8,
   },
-  rideInfo: {
+  divider: {
+    height: 1,
+    backgroundColor: '#eee',
+    marginBottom: 15,
+  },
+  tripDetails: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     marginBottom: 20,
   },
-  infoItem: {
-    alignItems: 'center',
-  },
-  infoLabel: {
+  arrivalInfo: {},
+  arrivalTitle: {
     fontSize: 14,
-    color: '#666',
-    marginBottom: 4,
+    color: '#777',
   },
-  infoValue: {
-    fontSize: 16,
+  arrivalTime: {
+    fontSize: 18,
     fontWeight: 'bold',
-    color: '#000',
+    color: '#333',
+    marginTop: 4,
   },
-  buttonContainer: {
+  fareInfo: {
+    alignItems: 'flex-end',
+  },
+  fareTitle: {
+    fontSize: 14,
+    color: '#777',
+  },
+  fareAmount: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    color: '#333',
+    marginTop: 4,
+  },
+  locationInfo: {
+    marginBottom: 20,
+  },
+  locationRow: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginVertical: 6,
+  },
+  locationDot: {
+    width: 12,
+    height: 12,
+    borderRadius: 6,
+    marginRight: 10,
+  },
+  pickupDot: {
+    backgroundColor: '#FFB800',
+  },
+  destinationDot: {
+    backgroundColor: '#FF3B30',
+  },
+  locationConnector: {
+    width: 2,
+    height: 20,
+    backgroundColor: '#ddd',
+    marginLeft: 5,
+  },
+  locationText: {
+    flex: 1,
+    fontSize: 14,
+    color: '#555',
   },
   cancelButton: {
-    backgroundColor: '#FFB800',
-    padding: 16,
-    borderRadius: 30,
-    flex: 1,
-    marginRight: 10,
+    backgroundColor: '#f5f5f5',
+    borderRadius: 8,
+    paddingVertical: 12,
     alignItems: 'center',
   },
   cancelButtonText: {
-    color: '#000',
     fontSize: 16,
-    fontWeight: 'bold',
+    fontWeight: '600',
+    color: '#FF3B30',
   },
-  arriveButton: {
-    backgroundColor: '#4CAF50',
-    padding: 16,
-    borderRadius: 30,
+  errorContainer: {
     flex: 1,
-    marginLeft: 10,
+    justifyContent: 'center',
     alignItems: 'center',
+    padding: 20,
   },
-  arriveButtonText: {
-    color: '#fff',
+  errorText: {
+    fontSize: 16,
+    color: '#666',
+    marginBottom: 20,
+  },
+  backButton: {
+    backgroundColor: '#FFB800',
+    borderRadius: 8,
+    paddingVertical: 12,
+    paddingHorizontal: 20,
+  },
+  backButtonText: {
     fontSize: 16,
     fontWeight: 'bold',
+    color: '#fff',
   },
 });
 
