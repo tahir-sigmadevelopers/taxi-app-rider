@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<svg width="200" height="100" viewBox="0 0 200 100" xmlns="http://www.w3.org/2000/svg">
+  <!-- Comfort Car (Sedan) -->
+  <g fill="none" stroke="#333" stroke-width="2">
+    <!-- Car Body -->
+    <path d="M20,65 L20,75 L35,75 L35,65 L150,65 L170,40 L180,40 L180,75 L165,75 L165,65 Z" fill="#d9edf7"/>
+    <!-- Windows -->
+    <path d="M45,45 L60,20 L130,20 L150,45 L45,45 Z" fill="#e0e0e0"/>
+    <!-- Wheels -->
+    <circle cx="50" cy="75" r="15" fill="#444"/>
+    <circle cx="150" cy="75" r="15" fill="#444"/>
+    <circle cx="50" cy="75" r="7" fill="#888"/>
+    <circle cx="150" cy="75" r="7" fill="#888"/>
+    <!-- Lights -->
+    <rect x="20" y="50" width="15" height="5" rx="2" fill="#ffcc00"/>
+    <rect x="165" y="50" width="15" height="5" rx="2" fill="#ff3333"/>
+    <!-- Details -->
+    <line x1="45" y1="45" x2="150" y2="45" stroke="#333" stroke-width="2"/>
+    <line x1="60" y1="20" x2="130" y2="20" stroke="#333" stroke-width="2"/>
+    <!-- Door Lines -->
+    <line x1="70" y1="45" x2="70" y2="65" stroke="#333" stroke-width="1.5"/>
+    <line x1="120" y1="45" x2="120" y2="65" stroke="#333" stroke-width="1.5"/>
+    <!-- Door Handles -->
+    <line x1="75" y1="55" x2="85" y2="55" stroke="#333" stroke-width="1.5"/>
+    <line x1="125" y1="55" x2="135" y2="55" stroke="#333" stroke-width="1.5"/>
+  </g>
+</svg> 

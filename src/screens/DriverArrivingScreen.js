@@ -95,7 +95,7 @@ const DriverArrivingScreen = ({ navigation, route }) => {
         <View style={styles.fareInfo}>
           <Ionicons name="information-circle" size={20} color="#FFB800" />
           <Text style={styles.fareText}>
-            ${fare.toFixed(2)} are your estimated fares for your ride
+            ${fare?.toFixed(2)} are your estimated fares for your ride
           </Text>
         </View>
       </View>

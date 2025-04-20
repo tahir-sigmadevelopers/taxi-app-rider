@@ -42,6 +42,8 @@ import PayCashScreen from './src/screens/PayCashScreen';
 import RideCompleteScreen from './src/screens/RideCompleteScreen';
 import DriverArrivingScreen from './src/screens/DriverArrivingScreen';
 import ArrivedAtDestinationScreen from './src/screens/ArrivedAtDestinationScreen';
+import SearchLocationScreen from './src/screens/SearchLocationScreen';
+import ConfirmLocationScreen from './src/screens/ConfirmLocationScreen';
 
 const Stack = createNativeStackNavigator();
 const Tab = createBottomTabNavigator();
@@ -122,9 +124,11 @@ export default function App() {
         <Stack.Screen name="InviteFriends" component={InviteFriendsScreen} />
         <Stack.Screen name="HelpCenter" component={HelpCenterScreen} />
         <Stack.Screen name="PasswordManager" component={PasswordManagerScreen} />
+        <Stack.Screen name="SearchLocation" component={SearchLocationScreen} />
         <Stack.Screen name="ScheduleRide" component={ScheduleRideScreen} />
         <Stack.Screen name="RideSharing" component={RideSharingScreen} />
         <Stack.Screen name="PromoCode" component={PromoCodeScreen} />
+        <Stack.Screen name="ConfirmLocation" component={ConfirmLocationScreen} />
         <Stack.Screen name="DriverArrivingScreen" component={DriverArrivingScreen} options={{ headerShown: false }} />
         <Stack.Screen name="ArrivedAtDestinationScreen" component={ArrivedAtDestinationScreen} options={{ headerShown: false }} />
         <Stack.Screen name="PayCash" component={PayCashScreen} options={{ headerShown: false }} />

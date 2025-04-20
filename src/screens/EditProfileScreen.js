@@ -195,10 +195,10 @@ const EditProfileScreen = ({ navigation }) => {
                 style={styles.profileImageContainer} 
                 onPress={pickImage}
               >
-                <Image
+          <Image
                   source={isCustomImage ? { uri: profileImage.uri } : profileImage}
-                  style={styles.profileImage}
-                />
+            style={styles.profileImage}
+          />
                 <View style={styles.cameraIcon}>
                   <Ionicons name="camera" size={18} color="#FFF" />
                 </View>
@@ -217,46 +217,46 @@ const EditProfileScreen = ({ navigation }) => {
                 >
                   <Ionicons name="camera-outline" size={18} color="#333" />
                   <Text style={styles.photoOptionText}>Camera</Text>
-                </TouchableOpacity>
+          </TouchableOpacity>
               </View>
-            </View>
+        </View>
 
-            <View style={styles.formContainer}>
+        <View style={styles.formContainer}>
               {errorMessage ? (
                 <Text style={styles.errorMessage}>{errorMessage}</Text>
               ) : null}
               
               <View style={styles.inputContainer}>
                 <Text style={styles.inputLabel}>Name</Text>
-                <TextInput
-                  style={styles.input}
-                  value={name}
-                  onChangeText={setName}
-                  placeholder="Enter your name"
-                />
-              </View>
+            <TextInput
+              style={styles.input}
+              value={name}
+              onChangeText={setName}
+              placeholder="Enter your name"
+            />
+          </View>
 
               <View style={styles.inputContainer}>
                 <Text style={styles.inputLabel}>Phone number</Text>
-                <TextInput
+              <TextInput
                   style={styles.input}
-                  value={phoneNumber}
-                  onChangeText={setPhoneNumber}
-                  keyboardType="phone-pad"
+                value={phoneNumber}
+                onChangeText={setPhoneNumber}
+                keyboardType="phone-pad"
                   placeholder="Enter your phone number"
-                />
-              </View>
+              />
+          </View>
 
               <View style={styles.inputContainer}>
                 <Text style={styles.inputLabel}>Email</Text>
-                <TextInput
-                  style={styles.input}
-                  value={email}
-                  onChangeText={setEmail}
-                  keyboardType="email-address"
-                  placeholder="Enter your email"
-                />
-              </View>
+            <TextInput
+              style={styles.input}
+              value={email}
+              onChangeText={setEmail}
+              keyboardType="email-address"
+              placeholder="Enter your email"
+            />
+          </View>
 
               <View style={styles.inputContainer}>
                 <Text style={styles.inputLabel}>Gender</Text>
@@ -293,7 +293,7 @@ const EditProfileScreen = ({ navigation }) => {
                       Female
                     </Text>
                   </TouchableOpacity>
-                  <TouchableOpacity
+              <TouchableOpacity
                     style={[
                       styles.genderButton,
                       gender === 'Other' && styles.selectedGenderButton,
@@ -308,11 +308,11 @@ const EditProfileScreen = ({ navigation }) => {
                     >
                       Other
                     </Text>
-                  </TouchableOpacity>
-                </View>
-              </View>
+              </TouchableOpacity>
             </View>
-          </ScrollView>
+          </View>
+        </View>
+      </ScrollView>
 
           <TouchableOpacity 
             style={[styles.updateButton, updating && styles.disabledButton]} 
@@ -322,9 +322,9 @@ const EditProfileScreen = ({ navigation }) => {
             {updating ? (
               <ActivityIndicator size="small" color="#fff" />
             ) : (
-              <Text style={styles.updateButtonText}>Update</Text>
+        <Text style={styles.updateButtonText}>Update</Text>
             )}
-          </TouchableOpacity>
+      </TouchableOpacity>
         </>
       )}
     </CustomSafeArea>
