@@ -62,18 +62,32 @@ const BookRideScreen = ({ navigation, route }) => {
     // Get the selected vehicle details
     const vehicle = vehicles.find(v => v.id === selectedVehicle);
     
-    // Navigate to the DriverArrivingScreen with ride details
-    navigation.navigate('DriverArrivingScreen', {
-      driver: {
-        name: 'Jenny Wilson',
-        vehicle: vehicle ? vehicle.type : 'Sedan',
-        carNumber: 'GR 678-UVWX',
-        seats: vehicle ? vehicle.seats : 4,
-        rate: parseFloat(vehicle ? vehicle.price.replace('$', '') : '5.50'),
-        image: require('../../assets/driver-profile.png'),
+    // Create mock pickup and destination data
+    const pickupData = {
+      coordinates: { 
+        latitude: 37.78825, 
+        longitude: -122.4324 
       },
+      address: '123 Main St, San Francisco, CA',
+      name: 'Current Location'
+    };
+    
+    const destinationData = {
+      coordinates: { 
+        latitude: 37.77825, 
+        longitude: -122.4224 
+      },
+      address: '456 Market St, San Francisco, CA',
+      name: 'Destination'
+    };
+    console.log(vehicle, "Hello World");
+    
+    // Navigate to the DriverRequestsScreen with ride details
+    navigation.navigate('DriverRequestsScreen', {
+      pickup: pickupData,
+      destination: destinationData,
       fare: parseFloat(vehicle ? vehicle.price.replace('$', '') : '5.50'),
-      // Add any other ride details you want to pass
+      fareRange: vehicle ? vehicle.price : '$5.50'
     });
   };
 

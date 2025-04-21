@@ -66,19 +66,12 @@ const ConfirmLocationScreen = ({ navigation, route }) => {
     setTimeout(() => {
       setLoading(false);
       
-      // Navigate to driver arriving screen or payment screen
-      navigation.navigate('DriverArrivingScreen', {
+      // Navigate to driver requests screen instead of driver arriving screen
+      navigation.navigate('DriverRequestsScreen', {
         pickup,
         destination,
         fare: estimatedFare,
-        fareRange: fareRange,
-        driver: {
-          name: 'John Smith',
-          rating: 4.8,
-          car: 'Toyota Camry',
-          plate: 'ABC 123',
-          eta: '3 min'
-        }
+        fareRange: fareRange
       });
     }, 1500);
   };

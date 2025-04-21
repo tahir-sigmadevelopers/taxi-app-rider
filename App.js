@@ -44,6 +44,7 @@ import DriverArrivingScreen from './src/screens/DriverArrivingScreen';
 import ArrivedAtDestinationScreen from './src/screens/ArrivedAtDestinationScreen';
 import SearchLocationScreen from './src/screens/SearchLocationScreen';
 import ConfirmLocationScreen from './src/screens/ConfirmLocationScreen';
+import DriverRequestsScreen from './src/screens/DriverRequestsScreen';
 
 const Stack = createNativeStackNavigator();
 const Tab = createBottomTabNavigator();
@@ -129,6 +130,7 @@ export default function App() {
         <Stack.Screen name="RideSharing" component={RideSharingScreen} />
         <Stack.Screen name="PromoCode" component={PromoCodeScreen} />
         <Stack.Screen name="ConfirmLocation" component={ConfirmLocationScreen} />
+        <Stack.Screen name="DriverRequestsScreen" component={DriverRequestsScreen} options={{ headerShown: false }} />
         <Stack.Screen name="DriverArrivingScreen" component={DriverArrivingScreen} options={{ headerShown: false }} />
         <Stack.Screen name="ArrivedAtDestinationScreen" component={ArrivedAtDestinationScreen} options={{ headerShown: false }} />
         <Stack.Screen name="PayCash" component={PayCashScreen} options={{ headerShown: false }} />
