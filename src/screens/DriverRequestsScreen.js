@@ -1,3 +1,4 @@
+import 'react-native-get-random-values';
 import React, { useState, useEffect } from 'react';
 import {
   View,
@@ -7,15 +8,19 @@ import {
   FlatList,
   Image,
   ActivityIndicator,
+  Alert,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import MapView, { Marker, Polyline } from 'react-native-maps';
 import CustomSafeArea from '../components/CustomSafeArea';
+import socketService from '../services/socketService';
+import { v4 as uuidv4 } from 'uuid';
 
 const DriverRequestsScreen = ({ navigation, route }) => {
   const [loading, setLoading] = useState(true);
   const [driverRequests, setDriverRequests] = useState([]);
   const [selectedDriver, setSelectedDriver] = useState(null);
+  const [rideId, setRideId] = useState(uuidv4()); // Generate a unique ride ID
   
   // Get parameters from route
   const pickup = route.params?.pickup;
@@ -23,52 +28,200 @@ const DriverRequestsScreen = ({ navigation, route }) => {
   const fare = route.params?.fare; // Numeric fare value
   const fareDisplay = route.params?.fareRange || `$${fare?.toFixed(2)}`; // Use fareRange if available
   
-  // Mock driver data (in a real app, this would come from backend API)
-  const mockDrivers = [
-    {
-      id: '1',
-      name: 'John Smith',
-      rating: 4.8,
-      car: 'Toyota Camry',
-      plate: 'ABC 123',
-      eta: '3 min',
-      distance: '0.8 mi away',
-      price: fare,
-      priceDisplay: fareDisplay,
-    },
-    {
-      id: '2',
-      name: 'Sarah Johnson',
-      rating: 4.9,
-      car: 'Honda Civic',
-      plate: 'XYZ 456',
-      eta: '5 min',
-      distance: '1.2 mi away',
-      price: fare * 0.95, // Slightly cheaper
-      priceDisplay: `$${(fare * 0.95).toFixed(2)}`,
-    },
-    {
-      id: '3',
-      name: 'Michael Davis',
-      rating: 4.7,
-      car: 'Nissan Altima',
-      plate: 'DEF 789',
-      eta: '6 min',
-      distance: '1.5 mi away',
-      price: fare * 0.9, // Even cheaper
-      priceDisplay: `$${(fare * 0.9).toFixed(2)}`,
-    },
-  ];
-  
-  // Simulate receiving driver requests
+  // Setup socket connection and listeners
   useEffect(() => {
-    const timer = setTimeout(() => {
-      setDriverRequests(mockDrivers);
-      setLoading(false);
-    }, 2000);
+    const userId = '123456'; // In a real app, this would come from user authentication
     
-    return () => clearTimeout(timer);
+    // Initialize socket if not already connected
+    if (!socketService.connected) {
+      socketService.initialize(userId);
+    }
+    
+    // Setup listeners for driver requests
+    socketService.on('onDriverRequest', (driverId, driverData, reqRideId) => {
+      if (reqRideId === rideId) {
+        console.log('Driver request received:', driverData);
+        
+        // Add driver request to the list
+        setDriverRequests(prev => {
+          // Check if this driver already sent a request
+          const existingIndex = prev.findIndex(d => d.id === driverId);
+          
+          if (existingIndex >= 0) {
+            // Update existing driver
+            const updated = [...prev];
+            updated[existingIndex] = {
+              ...updated[existingIndex],
+              ...driverData
+            };
+            return updated;
+          } else {
+            // Add new driver
+            return [...prev, {
+              id: driverId,
+              name: driverData.name,
+              rating: driverData.rating,
+              car: driverData.car,
+              plate: driverData.plate,
+              eta: driverData.eta + ' min',
+              distance: calculateDistance(driverData.latitude, driverData.longitude) + ' mi away',
+              price: fare,
+              priceDisplay: fareDisplay
+            }];
+          }
+        });
+        
+        // If this is our first driver, stop the loading state
+        setLoading(false);
+      }
+    });
+    
+    // Handle ride acceptance confirmation
+    socketService.on('onRideAccepted', (driverId, driverData, reqRideId) => {
+      if (reqRideId === rideId) {
+        // Navigate to driver arriving screen
+        navigation.navigate('DriverArrivingScreen', {
+          pickup,
+          destination,
+          fare,
+          fareRange: fareDisplay,
+          driver: {
+            name: driverData.name,
+            rating: driverData.rating,
+            car: driverData.car,
+            plate: driverData.plate,
+            eta: driverData.eta + ' min'
+          }
+        });
+      }
+    });
+    
+    // Request a ride through the socket
+    requestRide();
+    
+    // Set a timeout to show a message if no drivers are found
+    const noDriversTimeout = setTimeout(() => {
+      if (loading && driverRequests.length === 0) {
+        setLoading(false);
+        Alert.alert(
+          'No Drivers Found',
+          'No drivers are currently available in your area. Please try again later.',
+          [
+            { text: 'OK', onPress: () => navigation.goBack() }
+          ]
+        );
+      }
+    }, 20000); // 20 seconds timeout
+    
+    // Cleanup
+    return () => {
+      clearTimeout(noDriversTimeout);
+      socketService.on('onDriverRequest', null);
+      socketService.on('onRideAccepted', null);
+    };
   }, []);
+  
+  // Calculate rough distance in miles (for display only)
+  const calculateDistance = (driverLat, driverLon) => {
+    if (!pickup?.coordinates || !driverLat || !driverLon) return '?';
+    
+    const R = 3958.8; // Earth's radius in miles
+    const lat1 = pickup.coordinates.latitude * Math.PI / 180;
+    const lat2 = driverLat * Math.PI / 180;
+    const lon1 = pickup.coordinates.longitude * Math.PI / 180;
+    const lon2 = driverLon * Math.PI / 180;
+    
+    const dlon = lon2 - lon1;
+    const dlat = lat2 - lat1;
+    const a = Math.sin(dlat/2)**2 + Math.cos(lat1) * Math.cos(lat2) * Math.sin(dlon/2)**2;
+    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+    const distance = R * c;
+    
+    return distance.toFixed(1);
+  };
+  
+  // Function to request a ride via socket
+  const requestRide = () => {
+    if (socketService.connected) {
+      console.log('Requesting ride with ID:', rideId);
+      console.log('Pickup:', pickup);
+      console.log('Destination:', destination);
+      
+      if (!pickup || !pickup.coordinates) {
+        console.error('Pickup coordinates missing or invalid!');
+        setLoading(false);
+        Alert.alert(
+          'Error',
+          'Pickup location is missing or invalid. Please try again.',
+          [{ text: 'OK', onPress: () => navigation.goBack() }]
+        );
+        return;
+      }
+      
+      // Ensure coordinates are numbers
+      const validatedPickup = {
+        ...pickup,
+        coordinates: {
+          latitude: Number(pickup.coordinates.latitude),
+          longitude: Number(pickup.coordinates.longitude)
+        }
+      };
+      
+      const validatedDestination = {
+        ...destination,
+        coordinates: {
+          latitude: Number(destination.coordinates.latitude),
+          longitude: Number(destination.coordinates.longitude)
+        }
+      };
+      
+      // Log the validated data
+      console.log('Sending ride request with validated data:');
+      console.log('Validated pickup:', validatedPickup);
+      console.log('Validated destination:', validatedDestination);
+      
+      socketService.requestRide(rideId, validatedPickup, validatedDestination);
+      console.log('Ride request sent with ID:', rideId);
+    } else {
+      // If socket is not connected, try to connect again
+      const userId = '123456'; // In a real app, this would come from authentication
+      socketService.initialize(userId);
+      
+      // Try again after a short delay
+      setTimeout(() => {
+        if (socketService.connected) {
+          // Ensure coordinates are numbers
+          const validatedPickup = {
+            ...pickup,
+            coordinates: {
+              latitude: Number(pickup.coordinates.latitude),
+              longitude: Number(pickup.coordinates.longitude)
+            }
+          };
+          
+          const validatedDestination = {
+            ...destination,
+            coordinates: {
+              latitude: Number(destination.coordinates.latitude),
+              longitude: Number(destination.coordinates.longitude)
+            }
+          };
+          
+          socketService.requestRide(rideId, validatedPickup, validatedDestination);
+          console.log('Ride request sent with ID:', rideId);
+        } else {
+          setLoading(false);
+          Alert.alert(
+            'Connection Error',
+            'Unable to connect to ride service. Please check your internet connection and try again.',
+            [
+              { text: 'OK', onPress: () => navigation.goBack() }
+            ]
+          );
+        }
+      }, 1000);
+    }
+  };
   
   // Handle driver selection
   const handleSelectDriver = (driver) => {
@@ -79,26 +232,19 @@ const DriverRequestsScreen = ({ navigation, route }) => {
   const handleConfirmBooking = () => {
     if (!selectedDriver) return;
     
-    const driver = driverRequests.find(d => d.id === selectedDriver);
+    // Accept the selected driver through socket
+    socketService.acceptDriverRequest(rideId, selectedDriver);
     
-    // Navigate to driver arriving screen with selected driver
-    navigation.navigate('DriverArrivingScreen', {
-      pickup,
-      destination,
-      fare: driver.price,
-      fareRange: driver.priceDisplay,
-      driver: {
-        name: driver.name,
-        rating: driver.rating,
-        car: driver.car,
-        plate: driver.plate,
-        eta: driver.eta
-      }
-    });
+    // The navigation will be handled by the onRideAccepted event listener
   };
   
   // Handle cancel
   const handleCancel = () => {
+    // Cancel the ride request
+    if (socketService.connected) {
+      socketService.cancelRide(rideId);
+    }
+    
     navigation.goBack();
   };
   
@@ -222,30 +368,52 @@ const DriverRequestsScreen = ({ navigation, route }) => {
             </View>
           ) : (
             <>
-              <Text style={styles.driversTitle}>
-                {driverRequests.length} Drivers Available
-              </Text>
-              
-              <FlatList
-                data={driverRequests}
-                renderItem={renderDriverItem}
-                keyExtractor={item => item.id}
-                contentContainerStyle={styles.listContainer}
-                showsVerticalScrollIndicator={false}
-              />
-              
-              <TouchableOpacity 
-                style={[
-                  styles.confirmButton, 
-                  !selectedDriver && styles.disabledButton
-                ]}
-                onPress={handleConfirmBooking}
-                disabled={!selectedDriver}
-              >
-                <Text style={styles.confirmButtonText}>
-                  Confirm Driver
-                </Text>
-              </TouchableOpacity>
+              {driverRequests.length > 0 ? (
+                <>
+                  <Text style={styles.driversTitle}>
+                    {driverRequests.length} Drivers Available
+                  </Text>
+                  
+                  <FlatList
+                    data={driverRequests}
+                    renderItem={renderDriverItem}
+                    keyExtractor={item => item.id}
+                    contentContainerStyle={styles.listContainer}
+                    showsVerticalScrollIndicator={false}
+                  />
+                  
+                  <TouchableOpacity 
+                    style={[
+                      styles.confirmButton, 
+                      !selectedDriver && styles.disabledButton
+                    ]}
+                    onPress={handleConfirmBooking}
+                    disabled={!selectedDriver}
+                  >
+                    <Text style={styles.confirmButtonText}>
+                      Confirm Driver
+                    </Text>
+                  </TouchableOpacity>
+                </>
+              ) : (
+                <View style={styles.noDriversContainer}>
+                  <Ionicons name="car" size={50} color="#ccc" />
+                  <Text style={styles.noDriversText}>No drivers available</Text>
+                  <Text style={styles.noDriversSubText}>
+                    There are currently no drivers available in your area.
+                    Please try again later.
+                  </Text>
+                  <TouchableOpacity 
+                    style={styles.tryAgainButton}
+                    onPress={() => {
+                      setLoading(true);
+                      requestRide();
+                    }}
+                  >
+                    <Text style={styles.tryAgainButtonText}>Try Again</Text>
+                  </TouchableOpacity>
+                </View>
+              )}
             </>
           )}
         </View>
@@ -441,6 +609,36 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
     fontSize: 16,
   },
+  noDriversContainer: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 30,
+  },
+  noDriversText: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    color: '#333',
+    marginTop: 15,
+  },
+  noDriversSubText: {
+    fontSize: 14,
+    color: '#666',
+    textAlign: 'center',
+    marginTop: 10,
+    marginBottom: 20,
+  },
+  tryAgainButton: {
+    backgroundColor: '#FFB800',
+    borderRadius: 8,
+    paddingVertical: 12,
+    paddingHorizontal: 30,
+    marginTop: 10,
+  },
+  tryAgainButtonText: {
+    color: '#fff',
+    fontWeight: 'bold',
+    fontSize: 16,
+  }
 });
 
 export default DriverRequestsScreen; 
